@@ -16,6 +16,41 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Obtener todas las publicaciones recientes
+router.get('/recientes', async (req, res) => {
+  try {
+    const limit = req.query.limit || 10; // Puedes ajustar el límite según tus necesidades
+    const [publicaciones] = await pool.query(
+      'SELECT p.id_publicacion, p.titulo, p.resumen, u.nombre as autor, p.fecha_publicacion, p.imagen_portada ' +
+      'FROM publicaciones p ' +
+      'JOIN usuarios u ON p.id_usuario = u.id_usuario ' +
+      'WHERE p.estado = ? AND p.eliminado = ? ' +
+      'ORDER BY p.fecha_publicacion DESC ' +
+      'LIMIT ?',
+      ['publicado', 0, limit]
+    );
+
+    if (publicaciones.length === 0) {
+      // Si no hay publicaciones, devolver un placeholder
+      res.json([{
+        id_publicacion: 0,
+        titulo: 'Lorem Ipsum',
+        resumen: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+        autor: 'Autor Desconocido',
+        fecha_publicacion: new Date(),
+        imagen_portada: 'https://picsum.photos/2159/2794'
+      }]);
+    } else {
+      res.json(publicaciones);
+    }
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener publicaciones recientes' });
+  }
+});
+
+module.exports = router;
+
+
 // Crear nueva publicación
 router.post('/', verificarToken, upload.single('imagen_portada'), async (req, res) => {
   try {
