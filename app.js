@@ -12,6 +12,12 @@ const usuariosRoutes = require('./routes/usuarios.routes'); // Nueva línea
 const pingRoutes = require('./routes/ping.routes');
 
 const app = express();
+
+// Configurar la carpeta assets como directorio de archivos estáticos
+app.use('/assets', express.static(path.join(__dirname, '/assets')));
+
+
+
 // Configuración actualizada de CORS y Helmet
 app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }

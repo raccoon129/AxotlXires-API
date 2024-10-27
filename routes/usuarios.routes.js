@@ -1,13 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
-const { verificarToken } = require('../middleware/auth');
 
 /**
  * Obtener perfil de usuario por ID
  * GET /api/usuarios/:id
  */
-router.get('/:id', verificarToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
         // Obtener ID del usuario de los parámetros
         const userId = req.params.id;
