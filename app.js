@@ -11,11 +11,14 @@ const publicacionesRoutes = require('./routes/publicaciones.routes');
 const usuariosRoutes = require('./routes/usuarios.routes'); // Nueva línea
 const pingRoutes = require('./routes/ping.routes');
 
+const editorPublicacionesRoutes = require('./routes/editor.publicaciones.routes');
+
+
 const app = express();
 
 // Configurar la carpeta assets como directorio de archivos estáticos
 app.use('/assets', express.static(path.join(__dirname, '/assets')));
-
+app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
 
 // Configuración actualizada de CORS y Helmet
@@ -36,6 +39,9 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use('/api/editor/publicaciones', editorPublicacionesRoutes);
+
+
 // Carpeta para archivos estáticos
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -45,6 +51,7 @@ app.use('/api/publicaciones', publicacionesRoutes);
 app.use('/api/usuarios', usuariosRoutes); // Nueva línea
 app.use('/api/ping', pingRoutes);
 
+app.use('/api/editor/publicaciones', editorPublicacionesRoutes);
 
 // Iniciar servidor solo si la base de datos está conectada
 const iniciarServidor = async () => {

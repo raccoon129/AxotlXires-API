@@ -48,73 +48,40 @@ router.get('/recientes', async (req, res) => {
   }
 });
 
-module.exports = router;
-
-
-// Crear nueva publicación
-router.post('/', verificarToken, upload.single('imagen_portada'), async (req, res) => {
+// Obtener todos los tipos de publicaciones
+router.get('/tipospublicacion', async (req, res) => {
   try {
-    const { titulo, resumen, contenido, id_tipo } = req.body;
-    const imagen_portada = req.file ? req.file.path : null;
-    
-    const [resultado] = await pool.query(
-      'INSERT INTO publicaciones (id_usuario, titulo, resumen, contenido, id_tipo, imagen_portada, estado) VALUES (?, ?, ?, ?, ?, ?, "borrador")',
-      [req.usuario.id, titulo, resumen, contenido, id_tipo, imagen_portada]
-    );
+      const [tipos] = await pool.query('SELECT id_tipo, nombre, descripcion FROM tipos_publicacion');
 
-    res.status(201).json({ 
-      mensaje: 'Publicación creada',
-      id: resultado.insertId 
-    });
+      if (tipos.length === 0) {
+          return res.status(404).json({ mensaje: 'No se encontraron tipos de publicaciones' });
+      }
+
+      res.json({
+          mensaje: 'Tipos de publicaciones obtenidos exitosamente',
+          datos: tipos
+      });
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error al crear publicación' });
+      console.error('Error al obtener los tipos de publicaciones:', error);
+      res.status(500).json({ mensaje: 'Error al obtener los tipos de publicaciones' });
   }
 });
 
-// Actualizar publicación
-router.put('/:id', verificarToken, upload.single('imagen_portada'), async (req, res) => {
+router.get('/proximoid', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { titulo, resumen, contenido, id_tipo } = req.body;
-    const imagen_portada = req.file ? req.file.path : null;
+      const [id] = await pool.query('SELECT id_publicacion, id_publicacion + 1 AS proximo_id FROM publicaciones ORDER BY id_publicacion DESC LIMIT 1');
 
-    const [publicacion] = await pool.query(
-      'SELECT * FROM publicaciones WHERE id_publicacion = ? AND id_usuario = ?',
-      [id, req.usuario.id]
-    );
 
-    if (publicacion.length === 0) {
-      return res.status(404).json({ mensaje: 'Publicación no encontrada' });
-    }
+      if (id.length === 0) {
+        return res.json({ proximo_id: 1 });
+      }
 
-    let queryImagen = imagen_portada ? ', imagen_portada = ?' : '';
-    let valores = [titulo, resumen, contenido, id_tipo, id];
-    if (imagen_portada) valores.splice(4, 0, imagen_portada);
-
-    await pool.query(
-      `UPDATE publicaciones SET titulo = ?, resumen = ?, contenido = ?, id_tipo = ?${queryImagen} WHERE id_publicacion = ?`,
-      valores
-    );
-
-    res.json({ mensaje: 'Publicación actualizada' });
+      res.json({
+          id: id
+      });
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error al actualizar publicación' });
-  }
-});
-
-// Eliminar publicación (borrado lógico)
-router.delete('/:id', verificarToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    await pool.query(
-      'UPDATE publicaciones SET eliminado = 1, fecha_eliminacion = NOW() WHERE id_publicacion = ? AND id_usuario = ?',
-      [id, req.usuario.id]
-    );
-
-    res.json({ mensaje: 'Publicación eliminada' });
-  } catch (error) {
-    res.status(500).json({ mensaje: 'Error al eliminar publicación' });
+      console.error('Error al obtener el último ID de publicación disponible:', error);
+      res.status(500).json({ mensaje: 'Error al obtener el tope de los ID Disponibles para publicaciones.' });
   }
 });
 
