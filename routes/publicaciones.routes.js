@@ -84,5 +84,25 @@ router.get('/proximoid', async (req, res) => {
       res.status(500).json({ mensaje: 'Error al obtener el tope de los ID Disponibles para publicaciones.' });
   }
 });
+// Nueva ruta: Obtener todas las publicaciones de un usuario específico
+router.get('/usuario/:id_usuario', async (req, res) => {
+  try {
+    const { id_usuario } = req.params;
+    const [publicaciones] = await pool.query(
+      'SELECT * FROM publicaciones WHERE id_usuario = ? AND eliminado = 0',
+      [id_usuario]
+    );
+
+    if (publicaciones.length === 0) {
+      return res.status(404).json({ mensaje: 'No se encontraron publicaciones para este usuario' });
+    }
+
+    res.json(publicaciones);
+  } catch (error) {
+    console.error('Error al obtener publicaciones del usuario:', error);
+    res.status(500).json({ mensaje: 'Error al obtener publicaciones del usuario' });
+  }
+});
 
 module.exports = router;
+

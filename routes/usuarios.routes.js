@@ -29,7 +29,7 @@ async function processProfileImage(file) {
 }
 
 // Obtener perfil de usuario por ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const userId = req.params.id;
     
