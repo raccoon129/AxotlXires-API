@@ -11,8 +11,9 @@ const publicacionesRoutes = require('./routes/publicaciones.routes');
 const usuariosRoutes = require('./routes/usuarios.routes'); // Nueva línea
 const pingRoutes = require('./routes/ping.routes');
 
-const editorPublicacionesRoutes = require('./routes/editor.publicaciones.routes');
 
+const editorPublicacionesRoutes = require('./routes/editor.publicaciones.routes');
+const comentariosRoutes = require('./routes/comentarios.routes');
 
 const app = express();
 
@@ -52,7 +53,7 @@ app.use('/api/usuarios', usuariosRoutes); // Nueva línea
 app.use('/api/ping', pingRoutes);
 
 app.use('/api/editor/publicaciones', editorPublicacionesRoutes);
-
+app.use('/api/comentarios', comentariosRoutes);
 // Iniciar servidor solo si la base de datos está conectada
 const iniciarServidor = async () => {
   if (await verificarConexion()) {

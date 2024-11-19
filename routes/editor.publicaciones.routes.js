@@ -5,7 +5,7 @@ const upload = require('../middleware/multer');
 const { pool } = require('../config/database');
 
 // Obtener datos de una publicación por su ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', verificarToken, async (req, res) => {
     try {
         const publicacionId = req.params.id;
 

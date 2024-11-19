@@ -106,3 +106,22 @@ router.get('/usuario/:id_usuario', async (req, res) => {
 
 module.exports = router;
 
+// Nueva ruta: Obtener todas las publicaciones de un usuario específico con estado "publicado"
+router.get('/usuario/:id_usuario/publicadas', async (req, res) => {
+  try {
+    const { id_usuario } = req.params;
+    const [publicaciones] = await pool.query(
+      'SELECT * FROM publicaciones WHERE id_usuario = ? AND estado = "publicado" AND eliminado = 0',
+      [id_usuario]
+    );
+
+    if (publicaciones.length === 0) {
+      return res.status(404).json({ mensaje: 'No se encontraron publicaciones publicadas para este usuario' });
+    }
+
+    res.json(publicaciones);
+  } catch (error) {
+    console.error('Error al obtener publicaciones publicadas del usuario:', error);
+    res.status(500).json({ mensaje: 'Error al obtener publicaciones publicadas del usuario' });
+  }
+});
