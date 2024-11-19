@@ -14,7 +14,7 @@ const pingRoutes = require('./routes/ping.routes');
 
 const editorPublicacionesRoutes = require('./routes/editor.publicaciones.routes');
 const comentariosRoutes = require('./routes/comentarios.routes');
-
+const favoritosRoutes = require('./routes/favoritos.publicaciones.routes');
 const app = express();
 
 // Configurar la carpeta assets como directorio de archivos estáticos
@@ -51,7 +51,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/publicaciones', publicacionesRoutes);
 app.use('/api/usuarios', usuariosRoutes); // Nueva línea
 app.use('/api/ping', pingRoutes);
-
+app.use('/api/favoritos', favoritosRoutes);
 app.use('/api/editor/publicaciones', editorPublicacionesRoutes);
 app.use('/api/comentarios', comentariosRoutes);
 // Iniciar servidor solo si la base de datos está conectada
