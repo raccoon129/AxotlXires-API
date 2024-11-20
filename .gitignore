@@ -1,0 +1,10 @@
+
+# Ignorar contenido de directorios de uploads
+/uploads/portadas/*
+/uploads/perfil/*
+/uploads/temp/*
+
+# Mantener los directorios vacíos con .gitkeep
+!/uploads/portadas/.gitkeep
+!/uploads/perfil/.gitkeep
+!/uploads/temp/.gitkeep

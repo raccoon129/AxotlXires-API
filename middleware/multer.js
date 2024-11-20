@@ -1,19 +1,20 @@
 // middleware/multer.js
 const multer = require('multer');
 const path = require('path');
-const express = require('express');
-const app = express();
+const fs = require('fs').promises;
 
-// Middleware para interpretar JSON en las solicitudes
-app.use(express.json());
-
+// Crear directorio si no existe
+const uploadDir = path.join('uploads', 'portadas');
+fs.mkdir(uploadDir, { recursive: true }).catch(console.error);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    // Guardar directamente en uploads/portadas/
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    // Generar nombre único para el archivo
+    cb(null, 'portada_' + Date.now() + path.extname(file.originalname));
   }
 });
 

@@ -8,19 +8,18 @@ require('dotenv').config();
 const { verificarConexion } = require('./config/database');
 const authRoutes = require('./routes/auth.routes');
 const publicacionesRoutes = require('./routes/publicaciones.routes');
-const usuariosRoutes = require('./routes/usuarios.routes'); // Nueva línea
+const usuariosRoutes = require('./routes/usuarios.routes');
 const pingRoutes = require('./routes/ping.routes');
-
-
 const editorPublicacionesRoutes = require('./routes/editor.publicaciones.routes');
 const comentariosRoutes = require('./routes/comentarios.routes');
 const favoritosRoutes = require('./routes/favoritos.publicaciones.routes');
+
 const app = express();
 
-// Configurar la carpeta assets como directorio de archivos estáticos
-app.use('/assets', express.static(path.join(__dirname, '/assets')));
-app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
-
+// Configuración de carpetas estáticas
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+app.use('/uploads/portadas', express.static(path.join(__dirname, 'uploads', 'portadas')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Configuración actualizada de CORS y Helmet
 app.use(helmet({
@@ -40,31 +39,26 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/api/editor/publicaciones', editorPublicacionesRoutes);
-
-
-// Carpeta para archivos estáticos
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/publicaciones', publicacionesRoutes);
-app.use('/api/usuarios', usuariosRoutes); // Nueva línea
+app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/ping', pingRoutes);
 app.use('/api/favoritos', favoritosRoutes);
 app.use('/api/editor/publicaciones', editorPublicacionesRoutes);
 app.use('/api/comentarios', comentariosRoutes);
-// Iniciar servidor solo si la base de datos está conectada
+
+// Iniciar servidor
 const iniciarServidor = async () => {
-  if (await verificarConexion()) {
-    const PORT = process.env.PORT || 3001;
-    app.listen(PORT, () => {
-      console.log(`Servidor corriendo en puerto ${PORT}`);
-    });
-  } else {
-    console.error('No se pudo iniciar el servidor debido a errores en la conexión con la base de datos');
-    process.exit(1);
-  }
+    if (await verificarConexion()) {
+        const PORT = process.env.PORT || 3001;
+        app.listen(PORT, () => {
+            console.log(`Servidor corriendo en puerto ${PORT}`);
+        });
+    } else {
+        console.error('No se pudo iniciar el servidor debido a errores en la conexión con la base de datos');
+        process.exit(1);
+    }
 };
 
 iniciarServidor();

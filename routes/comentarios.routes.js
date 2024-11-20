@@ -14,7 +14,7 @@ router.get('/publicacion/:id_publicacion', async (req, res) => {
             'SELECT c.id_comentario, c.contenido, c.fecha_creacion, u.nombre AS autor, c.id_usuario ' +
             'FROM comentarios c ' +
             'JOIN usuarios u ON c.id_usuario = u.id_usuario ' +
-            'WHERE c.id_publicacion = ?',
+            'WHERE c.id_publicacion = ? ORDER BY c.fecha_creacion DESC',
             [id_publicacion]
         );
 

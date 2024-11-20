@@ -8,7 +8,7 @@ const { pool } = require('../config/database');
 router.get('/', async (req, res) => {
   try {
     const [publicaciones] = await pool.query(
-      'SELECT * FROM publicaciones WHERE eliminado = 0'
+      'SELECT * FROM publicaciones WHERE eliminado = 0 ORDER BY fecha_publicacion DESC'
     );
     res.json(publicaciones);
   } catch (error) {
@@ -89,7 +89,7 @@ router.get('/usuario/:id_usuario', async (req, res) => {
   try {
     const { id_usuario } = req.params;
     const [publicaciones] = await pool.query(
-      'SELECT * FROM publicaciones WHERE id_usuario = ? AND eliminado = 0',
+      'SELECT * FROM publicaciones WHERE id_usuario = ? AND eliminado = 0 ORDER BY fecha_publicacion DESC',
       [id_usuario]
     );
 
@@ -111,7 +111,7 @@ router.get('/usuario/:id_usuario/publicadas', async (req, res) => {
   try {
     const { id_usuario } = req.params;
     const [publicaciones] = await pool.query(
-      'SELECT * FROM publicaciones WHERE id_usuario = ? AND estado = "publicado" AND eliminado = 0',
+      'SELECT * FROM publicaciones WHERE id_usuario = ? AND estado = "publicado" AND eliminado = 0 ORDER BY fecha_publicacion DESC',
       [id_usuario]
     );
 
