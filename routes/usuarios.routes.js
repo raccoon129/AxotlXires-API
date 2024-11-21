@@ -75,15 +75,14 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Actualizar perfil de usuario
-router.put('/:id', authenticateToken, upload.single('foto_perfil'), async (req, res) => {
+// 1. Actualizar información básica
+router.put('/actualizacion/:id/info-basica', authenticateToken, async (req, res) => {
   const connection = await pool.getConnection();
   
   try {
     const userId = req.params.id;
-    const { nombre, nombramiento, correo, contrasenaActual, nuevaContrasena } = req.body;
+    const { nombre, nombramiento, correo } = req.body;
 
-    // Verificar que el usuario autenticado sea el mismo que se intenta modificar
     if (req.usuario.id !== parseInt(userId)) {
       return res.status(403).json({
         status: 'error',
@@ -91,35 +90,16 @@ router.put('/:id', authenticateToken, upload.single('foto_perfil'), async (req, 
       });
     }
 
-    // Verificar que el usuario existe
-    const [usuario] = await connection.query(
-      'SELECT contrasena_hash, foto_perfil FROM usuarios WHERE id_usuario = ?',
-      [userId]
-    );
-
-    if (usuario.length === 0) {
-      return res.status(404).json({
+    if (!nombre && !nombramiento && !correo) {
+      return res.status(400).json({
         status: 'error',
-        mensaje: 'Usuario no encontrado'
+        mensaje: 'Debe proporcionar al menos un campo para actualizar'
       });
     }
 
-    // Iniciar transacción
     await connection.beginTransaction();
 
-    let updateFields = {};
-    let updateValues = [];
-    let updateQuery = 'UPDATE usuarios SET ';
-
-    // Procesar campos básicos
-    if (nombre) {
-      updateFields.nombre = nombre;
-    }
-    if (nombramiento) {
-      updateFields.nombramiento = nombramiento;
-    }
     if (correo) {
-      // Verificar si el correo ya existe
       const [existingEmail] = await connection.query(
         'SELECT id_usuario FROM usuarios WHERE correo = ? AND id_usuario != ?',
         [correo, userId]
@@ -128,69 +108,157 @@ router.put('/:id', authenticateToken, upload.single('foto_perfil'), async (req, 
       if (existingEmail.length > 0) {
         throw new Error('El correo electrónico ya está en uso');
       }
-      updateFields.correo = correo;
     }
 
-    // Procesar cambio de contraseña
-    if (contrasenaActual && nuevaContrasena) {
-      const isValidPassword = await bcrypt.compare(contrasenaActual, usuario[0].contrasena_hash);
-      if (!isValidPassword) {
-        throw new Error('La contraseña actual es incorrecta');
-      }
-      
-      const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
-      updateFields.contrasena_hash = hashedPassword;
-    }
+    const updateFields = {};
+    if (nombre) updateFields.nombre = nombre;
+    if (nombramiento) updateFields.nombramiento = nombramiento;
+    if (correo) updateFields.correo = correo;
 
-    // Procesar imagen si se proporciona
-    if (req.file) {
-      const filename = await processProfileImage(req.file);
-      updateFields.foto_perfil = filename;
-
-      // Eliminar imagen anterior si existe
-      if (usuario[0].foto_perfil) {
-        const oldImagePath = path.join('uploads/perfil', usuario[0].foto_perfil);
-        try {
-          await fs.unlink(oldImagePath);
-        } catch (error) {
-          console.error('Error al eliminar imagen anterior:', error);
-        }
-      }
-    }
-
-    // Construir query de actualización
-    const entries = Object.entries(updateFields);
-    if (entries.length === 0) {
-      return res.status(400).json({
-        status: 'error',
-        mensaje: 'No se proporcionaron campos para actualizar'
-      });
-    }
-
-    updateQuery += entries
-      .map(([key], index) => `${key} = ?`)
-      .join(', ');
-    updateQuery += ' WHERE id_usuario = ?';
-    
-    updateValues = [...entries.map(([, value]) => value), userId];
-
-    // Ejecutar actualización
-    await connection.query(updateQuery, updateValues);
+    const updateQuery = 'UPDATE usuarios SET ? WHERE id_usuario = ?';
+    await connection.query(updateQuery, [updateFields, userId]);
     await connection.commit();
 
     res.json({
       status: 'success',
-      mensaje: 'Perfil actualizado exitosamente'
+      mensaje: 'Información básica actualizada exitosamente'
     });
 
   } catch (error) {
     await connection.rollback();
-    console.error('Error al actualizar perfil:', error);
-    
     res.status(400).json({
       status: 'error',
-      mensaje: error.message || 'Error al actualizar el perfil',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      mensaje: error.message || 'Error al actualizar información básica'
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+// 2. Actualizar foto de perfil
+router.put('/actualizacion/:id/foto', authenticateToken, upload.single('foto_perfil'), async (req, res) => {
+  const connection = await pool.getConnection();
+  
+  try {
+    const userId = req.params.id;
+
+    if (req.usuario.id !== parseInt(userId)) {
+      return res.status(403).json({
+        status: 'error',
+        mensaje: 'No tienes permiso para modificar este perfil'
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        status: 'error',
+        mensaje: 'No se proporcionó ninguna imagen'
+      });
+    }
+
+    await connection.beginTransaction();
+
+    const [usuario] = await connection.query(
+      'SELECT foto_perfil FROM usuarios WHERE id_usuario = ?',
+      [userId]
+    );
+
+    const filename = await processProfileImage(req.file);
+
+    if (usuario[0].foto_perfil) {
+      const oldImagePath = path.join('uploads/perfil', usuario[0].foto_perfil);
+      try {
+        await fs.unlink(oldImagePath);
+      } catch (error) {
+        console.error('Error al eliminar imagen anterior:', error);
+      }
+    }
+
+    await connection.query(
+      'UPDATE usuarios SET foto_perfil = ? WHERE id_usuario = ?',
+      [filename, userId]
+    );
+
+    await connection.commit();
+
+    res.json({
+      status: 'success',
+      mensaje: 'Foto de perfil actualizada exitosamente'
+    });
+
+  } catch (error) {
+    await connection.rollback();
+    res.status(400).json({
+      status: 'error',
+      mensaje: error.message || 'Error al actualizar foto de perfil'
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+// 3. Actualizar contraseña
+router.put('/actualizacion/:id/password', authenticateToken, async (req, res) => {
+  const connection = await pool.getConnection();
+  
+  try {
+    const userId = req.params.id;
+    const { contrasenaActual, nuevaContrasena, confirmarContrasena } = req.body;
+
+    if (req.usuario.id !== parseInt(userId)) {
+      return res.status(403).json({
+        status: 'error',
+        mensaje: 'No tienes permiso para modificar este perfil'
+      });
+    }
+
+    if (!contrasenaActual || !nuevaContrasena || !confirmarContrasena) {
+      return res.status(400).json({
+        status: 'error',
+        mensaje: 'Todos los campos de contraseña son requeridos'
+      });
+    }
+
+    if (nuevaContrasena !== confirmarContrasena) {
+      return res.status(400).json({
+        status: 'error',
+        mensaje: 'Las contraseñas nuevas no coinciden'
+      });
+    }
+
+    const [usuario] = await connection.query(
+      'SELECT contrasena_hash FROM usuarios WHERE id_usuario = ?',
+      [userId]
+    );
+
+    const isValidPassword = await bcrypt.compare(contrasenaActual, usuario[0].contrasena_hash);
+    if (!isValidPassword) {
+      return res.status(400).json({
+        status: 'error',
+        mensaje: 'La contraseña actual es incorrecta'
+      });
+    }
+
+    await connection.beginTransaction();
+
+    const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
+    await connection.query(
+      'UPDATE usuarios SET contrasena_hash = ? WHERE id_usuario = ?',
+      [hashedPassword, userId]
+    );
+
+    await connection.commit();
+
+    res.json({
+      status: 'success',
+      mensaje: 'Contraseña actualizada exitosamente'
+    });
+
+  } catch (error) {
+    await connection.rollback();
+    res.status(400).json({
+      status: 'error',
+      mensaje: error.message || 'Error al actualizar contraseña'
     });
   } finally {
     connection.release();
