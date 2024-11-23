@@ -79,50 +79,90 @@ async function eliminarImagenPortadaAnterior(nombreArchivo) {
     }
 }
 
-// Crear una nueva publicación que se enviará primero a revisión
-router.post('/', verificarToken, upload.single('imagen_portada'), async (req, res) => {
+// Ruta modificada para enviar a revisión
+router.post('/nuevapublicacionrevision', verificarToken, upload.single('imagen_portada'), async (req, res) => {
+    const connection = await pool.getConnection();
+    
     try {
         const { id: userId } = req.usuario;
-        const { titulo, resumen, contenido, referencias = '', estado = 'en_revision', es_privada = 1, id_tipo } = req.body;
+        const { 
+            id_publicacion,
+            titulo, 
+            resumen, 
+            contenido, 
+            referencias, 
+            id_tipo 
+        } = req.body;
 
-        if (!id_tipo) {
-            return res.status(400).json({ mensaje: 'El campo id_tipo es obligatorio.' });
-        }
-
-        // Insertar primero la publicación para obtener el ID
-        const [resultado] = await pool.query(
-            `INSERT INTO publicaciones (id_usuario, titulo, resumen, contenido, referencias, estado, es_privada, fecha_creacion, id_tipo)
-             VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?)`,
-            [userId, titulo, resumen, contenido, referencias, estado, es_privada, id_tipo]
+        // Verificar existencia del borrador
+        const [borrador] = await connection.query(
+            'SELECT * FROM publicaciones WHERE id_publicacion = ? AND id_usuario = ? AND estado = "borrador"',
+            [id_publicacion, userId]
         );
 
-        let rutaImagenPortada = null;
-        if (req.file) {
-            rutaImagenPortada = await procesarImagenPortada(req.file);
-            // Actualizar la publicación con la ruta de la imagen
-            await pool.query(
-                'UPDATE publicaciones SET imagen_portada = ? WHERE id_publicacion = ?',
-                [rutaImagenPortada, resultado.insertId]
-            );
+        if (borrador.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                mensaje: 'No se encontró el borrador o no tienes permiso para modificarlo'
+            });
         }
 
-        res.status(201).json({
-            mensaje: 'Publicación creada exitosamente',
+        // Validar campos obligatorios
+        if (!titulo || !resumen || !contenido || !referencias || !id_tipo) {
+            return res.status(400).json({
+                status: 'error',
+                mensaje: 'Todos los campos son obligatorios'
+            });
+        }
+
+        await connection.beginTransaction();
+
+        let rutaImagenPortada = borrador[0].imagen_portada;
+        if (req.file) {
+            // Si hay nueva imagen, procesar y actualizar
+            if (rutaImagenPortada) {
+                await eliminarImagenPortadaAnterior(rutaImagenPortada);
+            }
+            rutaImagenPortada = await procesarImagenPortada(req.file);
+        }
+
+        if (!rutaImagenPortada) {
+            return res.status(400).json({
+                status: 'error',
+                mensaje: 'La imagen de portada es obligatoria'
+            });
+        }
+
+        // Actualizar publicación a estado en_revision
+        await connection.query(
+            `UPDATE publicaciones SET 
+                titulo = ?, resumen = ?, contenido = ?, referencias = ?,
+                estado = 'en_revision', es_privada = 1, imagen_portada = ?,
+                id_tipo = ?, fecha_creacion = NOW()
+            WHERE id_publicacion = ?`,
+            [titulo, resumen, contenido, referencias, rutaImagenPortada, id_tipo, id_publicacion]
+        );
+
+        await connection.commit();
+
+        res.json({
+            status: 'success',
+            mensaje: 'Publicación enviada a revisión exitosamente',
             datos: {
-                id_publicacion: resultado.insertId,
-                titulo,
-                resumen,
-                contenido,
-                referencias,
-                estado,
-                es_privada,
-                imagen_portada: rutaImagenPortada,
-                id_tipo
+                id_publicacion,
+                imagen_portada: rutaImagenPortada
             }
         });
+
     } catch (error) {
-        console.error('Error al crear la publicación:', error);
-        res.status(500).json({ mensaje: 'Error al crear la publicación', error });
+        await connection.rollback();
+        console.error('Error al enviar a revisión:', error);
+        res.status(500).json({
+            status: 'error',
+            mensaje: 'Error al enviar la publicación a revisión'
+        });
+    } finally {
+        connection.release();
     }
 });
 
