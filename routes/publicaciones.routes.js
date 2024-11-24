@@ -125,3 +125,76 @@ router.get('/usuario/:id_usuario/publicadas', async (req, res) => {
     res.status(500).json({ mensaje: 'Error al obtener publicaciones publicadas del usuario' });
   }
 });
+
+// Obtener una publicación específica por ID
+router.get('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Consulta para obtener la publicación con datos del autor
+        const [publicaciones] = await pool.query(
+            `SELECT 
+                p.id_publicacion,
+                p.titulo,
+                p.resumen,
+                p.contenido,
+                p.referencias,
+                p.fecha_publicacion,
+                p.imagen_portada,
+                p.id_tipo,
+                p.estado,
+                p.es_privada,
+                u.id_usuario,
+                u.nombre as autor,
+                u.foto_perfil as autor_foto,
+                tp.nombre as tipo_publicacion
+            FROM publicaciones p
+            JOIN usuarios u ON p.id_usuario = u.id_usuario
+            JOIN tipos_publicacion tp ON p.id_tipo = tp.id_tipo
+            WHERE p.id_publicacion = ? 
+            AND p.eliminado = 0 
+            AND p.estado = 'publicado'`,
+            [id]
+        );
+
+        if (publicaciones.length === 0) {
+            return res.status(404).json({ 
+                status: 'error',
+                mensaje: 'Publicación no encontrada o no está disponible' 
+            });
+        }
+
+        // Obtener el total de favoritos de la publicación
+        const [favoritos] = await pool.query(
+            'SELECT COUNT(*) as total_favoritos FROM favoritos WHERE id_publicacion = ?',
+            [id]
+        );
+
+        // Obtener el total de comentarios de la publicación
+        const [comentarios] = await pool.query(
+            'SELECT COUNT(*) as total_comentarios FROM comentarios WHERE id_publicacion = ?',
+            [id]
+        );
+
+        // Combinar toda la información
+        const publicacionCompleta = {
+            ...publicaciones[0],
+            total_favoritos: favoritos[0].total_favoritos,
+            total_comentarios: comentarios[0].total_comentarios
+        };
+
+        res.json({
+            status: 'success',
+            mensaje: 'Publicación recuperada exitosamente',
+            datos: publicacionCompleta
+        });
+
+    } catch (error) {
+        console.error('Error al obtener la publicación:', error);
+        res.status(500).json({
+            status: 'error',
+            mensaje: 'Error al obtener la publicación',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
