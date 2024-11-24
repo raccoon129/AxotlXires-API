@@ -316,4 +316,65 @@ router.put('/:id', verificarToken, upload.single('imagen_portada'), async (req, 
     }
 });
 
+// Cambiar estado de privacidad de una publicación
+router.put('/:id/privacidad', verificarToken, async (req, res) => {
+    const connection = await pool.getConnection();
+    
+    try {
+        const publicacionId = req.params.id;
+        const { id: userId } = req.usuario;
+
+        // Verificar que la publicación exista y pertenezca al usuario
+        const [publicacion] = await connection.query(
+            'SELECT id_usuario, es_privada FROM publicaciones WHERE id_publicacion = ? AND eliminado = 0',
+            [publicacionId]
+        );
+
+        if (publicacion.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                mensaje: 'Publicación no encontrada'
+            });
+        }
+
+        if (publicacion[0].id_usuario !== userId) {
+            return res.status(403).json({
+                status: 'error',
+                mensaje: 'No tienes permiso para modificar esta publicación'
+            });
+        }
+
+        await connection.beginTransaction();
+
+        // Cambiar el estado de privacidad (toggle)
+        const nuevoEstado = publicacion[0].es_privada === 1 ? 0 : 1;
+        
+        await connection.query(
+            'UPDATE publicaciones SET es_privada = ? WHERE id_publicacion = ?',
+            [nuevoEstado, publicacionId]
+        );
+
+        await connection.commit();
+
+        res.json({
+            status: 'success',
+            mensaje: 'Estado de privacidad actualizado exitosamente',
+            datos: {
+                id_publicacion: publicacionId,
+                es_privada: nuevoEstado
+            }
+        });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Error al cambiar estado de privacidad:', error);
+        res.status(500).json({
+            status: 'error',
+            mensaje: 'Error al actualizar el estado de privacidad'
+        });
+    } finally {
+        connection.release();
+    }
+});
+
 module.exports = router;

@@ -49,7 +49,7 @@ router.get('/:id', async (req, res) => {
     const [publicaciones] = await pool.query(
       `SELECT COUNT(*) as total_publicaciones 
        FROM publicaciones 
-       WHERE id_usuario = ? AND eliminado = 0 AND estado = 'publicado'`,
+       WHERE id_usuario = ? AND eliminado = 0 AND estado = 'publicado' AND es_privada = 0`,
       [userId]
     );
 

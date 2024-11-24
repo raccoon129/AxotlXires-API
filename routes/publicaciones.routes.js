@@ -8,7 +8,7 @@ const { pool } = require('../config/database');
 router.get('/', async (req, res) => {
   try {
     const [publicaciones] = await pool.query(
-      'SELECT * FROM publicaciones WHERE eliminado = 0 ORDER BY fecha_publicacion DESC'
+      'SELECT * FROM publicaciones WHERE eliminado = 0 AND es_privada = 0 ORDER BY fecha_publicacion DESC'
     );
     res.json(publicaciones);
   } catch (error) {
@@ -16,18 +16,18 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Obtener todas las publicaciones recientes
+// Obtener todas las publicaciones recientes públicas
 router.get('/recientes', async (req, res) => {
   try {
-    const limit = req.query.limit || 10; // Puedes ajustar el límite según tus necesidades
+    const limit = req.query.limit || 10;
     const [publicaciones] = await pool.query(
       'SELECT p.id_publicacion, p.titulo, p.resumen, u.nombre as autor, p.fecha_publicacion, p.imagen_portada ' +
       'FROM publicaciones p ' +
       'JOIN usuarios u ON p.id_usuario = u.id_usuario ' +
-      'WHERE p.estado = ? AND p.eliminado = ? ' +
+      'WHERE p.estado = ? AND p.eliminado = ? AND p.es_privada = ? ' +
       'ORDER BY p.fecha_publicacion DESC ' +
       'LIMIT ?',
-      ['publicado', 0, limit]
+      ['publicado', 0, 0, limit] 
     );
 
     if (publicaciones.length === 0) {
@@ -111,12 +111,12 @@ router.get('/usuario/:id_usuario/publicadas', async (req, res) => {
   try {
     const { id_usuario } = req.params;
     const [publicaciones] = await pool.query(
-      'SELECT * FROM publicaciones WHERE id_usuario = ? AND estado = "publicado" AND eliminado = 0 ORDER BY fecha_publicacion DESC',
+      'SELECT * FROM publicaciones WHERE id_usuario = ? AND estado = "publicado" AND eliminado = 0 AND es_privada = 0 ORDER BY fecha_publicacion DESC',
       [id_usuario]
     );
 
     if (publicaciones.length === 0) {
-      return res.status(404).json({ mensaje: 'No se encontraron publicaciones publicadas para este usuario' });
+      return res.status(404).json({ mensaje: 'No se encontraron publicaciones para este usuario' });
     }
 
     res.json(publicaciones);
