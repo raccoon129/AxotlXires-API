@@ -8,3 +8,6 @@
 !/uploads/portadas/.gitkeep
 !/uploads/perfil/.gitkeep
 !/uploads/temp/.gitkeep
+
+# Dependencies
+/node_modules

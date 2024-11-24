@@ -198,3 +198,42 @@ router.get('/:id', async (req, res) => {
         });
     }
 });
+
+// Obtener categoría de una publicación específica
+router.get('/:id/categoria', async (req, res) => {
+  try {
+      const { id } = req.params;
+
+      const [categoria] = await pool.query(
+          `SELECT 
+              t.id_tipo,
+              t.nombre as categoria,
+              t.descripcion
+          FROM publicaciones p
+          JOIN tipos_publicacion t ON p.id_tipo = t.id_tipo
+          WHERE p.id_publicacion = ? AND p.eliminado = 0`,
+          [id]
+      );
+
+      if (categoria.length === 0) {
+          return res.status(404).json({
+              status: 'error',
+              mensaje: 'No se encontró la publicación o la categoría'
+          });
+      }
+
+      res.json({
+          status: 'success',
+          mensaje: 'Categoría obtenida exitosamente',
+          datos: categoria[0]
+      });
+
+  } catch (error) {
+      console.error('Error al obtener la categoría:', error);
+      res.status(500).json({
+          status: 'error',
+          mensaje: 'Error al obtener la categoría de la publicación',
+          error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+  }
+});

@@ -13,6 +13,7 @@ const pingRoutes = require('./routes/ping.routes');
 const editorPublicacionesRoutes = require('./routes/editor.publicaciones.routes');
 const comentariosRoutes = require('./routes/comentarios.routes');
 const favoritosRoutes = require('./routes/favoritos.publicaciones.routes');
+const descargasRoutes = require('./routes/descargas.routes');
 
 const app = express();
 
@@ -20,10 +21,17 @@ const app = express();
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use('/uploads/portadas', express.static(path.join(__dirname, 'uploads', 'portadas')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+app.use('/fonts', express.static(path.join(__dirname, 'fonts')));
+app.use('/assets/img', express.static(path.join(__dirname, 'assets', 'img')));
 // Configuración actualizada de CORS y Helmet
 app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "font-src": ["'self'", "fonts/", "data:"],
+        },
+    }
 }));
   
 app.use(cors({
@@ -47,6 +55,7 @@ app.use('/api/ping', pingRoutes);
 app.use('/api/favoritos', favoritosRoutes);
 app.use('/api/editor/publicaciones', editorPublicacionesRoutes);
 app.use('/api/comentarios', comentariosRoutes);
+app.use('/api/descargas', descargasRoutes);
 
 // Iniciar servidor
 const iniciarServidor = async () => {
