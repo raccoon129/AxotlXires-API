@@ -8,14 +8,33 @@ const { pool } = require('../config/database');
 router.get('/', async (req, res) => {
   try {
     const [publicaciones] = await pool.query(
-      'SELECT * FROM publicaciones WHERE eliminado = 0 AND es_privada = 0 ORDER BY fecha_publicacion DESC'
+      `SELECT 
+        p.id_publicacion, 
+        p.id_usuario, 
+        p.id_tipo, 
+        p.titulo, 
+        p.resumen, 
+        p.estado, 
+        p.imagen_portada, 
+        p.es_privada, 
+        p.fecha_publicacion,
+        u.nombre as autor
+      FROM publicaciones p
+      JOIN usuarios u ON p.id_usuario = u.id_usuario
+      WHERE p.eliminado = 0 
+      AND p.es_privada = 0 
+      ORDER BY p.fecha_publicacion DESC`
     );
+    
     res.json(publicaciones);
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error al obtener publicaciones' });
+    console.error('Error al obtener publicaciones:', error);
+    res.status(500).json({ 
+      status: 'error',
+      mensaje: 'Error al obtener publicaciones' 
+    });
   }
 });
-
 // Obtener todas las publicaciones recientes públicas
 router.get('/recientes', async (req, res) => {
   try {
@@ -233,6 +252,80 @@ router.get('/:id/categoria', async (req, res) => {
       res.status(500).json({
           status: 'error',
           mensaje: 'Error al obtener la categoría de la publicación',
+          error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+  }
+});
+
+// Obtener todas las categorías disponibles
+router.get('/categorias/todas', async (req, res) => {
+    try {
+        const [categorias] = await pool.query(
+            `SELECT 
+                id_tipo,
+                nombre as categoria,
+                descripcion
+            FROM tipos_publicacion
+            ORDER BY nombre ASC`
+        );
+
+        if (categorias.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                mensaje: 'No hay categorías disponibles'
+            });
+        }
+
+        res.json({
+            status: 'success',
+            mensaje: 'Categorías obtenidas exitosamente',
+            datos: categorias
+        });
+
+    } catch (error) {
+        console.error('Error al obtener categorías:', error);
+        res.status(500).json({
+            status: 'error',
+            mensaje: 'Error al obtener las categorías',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+// Obtener usuario de una publicación específica
+router.get('/:idPublicacion/usuarioPertenece', async (req, res) => {
+  try {
+      const { idPublicacion } = req.params;
+
+      const [usuario] = await pool.query(
+          `SELECT 
+              u.id_usuario,
+              u.nombre,
+              COALESCE(u.foto_perfil, 'thumb_who.jpg') as foto_perfil
+          FROM publicaciones p
+          JOIN usuarios u ON p.id_usuario = u.id_usuario
+          WHERE p.id_publicacion = ? AND p.eliminado = 0`,
+          [idPublicacion]
+      );
+
+      if (usuario.length === 0) {
+          return res.status(404).json({
+              status: 'error',
+              mensaje: 'No se encontró la publicación o el usuario asociado'
+          });
+      }
+
+      res.json({
+          status: 'success',
+          mensaje: 'Usuario obtenido exitosamente',
+          datos: usuario[0]
+      });
+
+  } catch (error) {
+      console.error('Error al obtener usuario de la publicación:', error);
+      res.status(500).json({
+          status: 'error',
+          mensaje: 'Error al obtener el usuario de la publicación',
           error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
   }
