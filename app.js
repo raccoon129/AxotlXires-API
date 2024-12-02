@@ -20,7 +20,9 @@ const app = express();
 
 // Configuración de carpetas estáticas
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+app.use('/assets/default', express.static(path.join(__dirname, 'assets', 'default')));
 app.use('/uploads/portadas', express.static(path.join(__dirname, 'uploads', 'portadas')));
+app.use('/uploads/perfil', express.static(path.join(__dirname, 'uploads', 'perfil'))); // Nueva ruta para fotos de perfil
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/fonts', express.static(path.join(__dirname, 'fonts')));
 app.use('/assets/img', express.static(path.join(__dirname, 'assets', 'img')));

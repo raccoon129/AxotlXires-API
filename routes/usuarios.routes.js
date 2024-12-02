@@ -10,20 +10,33 @@ const authenticateToken = require('../middleware/autenticateToken');
 const upload = require('../middleware/multer');
 
 // Función auxiliar para procesar la imagen
-async function processProfileImage(file) {
+async function processProfileImage(file, oldImagePath = null) {
   const filename = `profile-${uuidv4()}${path.extname(file.originalname)}`;
-  const outputPath = path.join('uploads/perfil', filename);
+  const uploadDir = path.join(__dirname, '..', 'uploads', 'perfil');
   
-  await sharp(file.path)
+  // Asegurar que el directorio existe
+  await fs.mkdir(uploadDir, { recursive: true });
+  
+  const outputPath = path.join(uploadDir, filename);
+  
+  await sharp(file.buffer)
     .resize(500, 500, {
       fit: 'cover',
       position: 'center'
     })
     .jpeg({ quality: 80 })
     .toFile(outputPath);
-    
-  // Eliminar archivo temporal
-  await fs.unlink(file.path);
+  
+  // Eliminar imagen anterior si existe
+  if (oldImagePath) {
+    try {
+      const fullOldPath = path.join(__dirname, '..', oldImagePath);
+      await fs.access(fullOldPath);
+      await fs.unlink(fullOldPath);
+    } catch (error) {
+      console.error('Error al eliminar imagen anterior:', error);
+    }
+  }
   
   return filename;
 }
@@ -71,6 +84,34 @@ router.get('/:id', async (req, res) => {
       status: 'error',
       mensaje: 'Error al obtener el perfil del usuario',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Obtener foto de perfil
+router.get('/foto-perfil/:filename', async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    
+    // Si no se proporciona filename o es null
+    if (!filename || filename === 'null') {
+      return res.sendFile(path.join(__dirname, '..', 'assets', 'default', 'who.jpg'));
+    }
+
+    const imagePath = path.join(__dirname, '..', 'uploads', 'perfil', filename);
+
+    try {
+      await fs.access(imagePath);
+      res.sendFile(imagePath);
+    } catch (error) {
+      // Si no existe la imagen, enviar imagen por defecto
+      res.sendFile(path.join(__dirname, '..', 'assets', 'default', 'who.jpg'));
+    }
+  } catch (error) {
+    console.error('Error al obtener foto de perfil:', error);
+    res.status(500).json({
+      status: 'error',
+      mensaje: 'Error al obtener la imagen'
     });
   }
 });
@@ -163,16 +204,8 @@ router.put('/actualizacion/:id/foto', authenticateToken, upload.single('foto_per
       [userId]
     );
 
-    const filename = await processProfileImage(req.file);
-
-    if (usuario[0].foto_perfil) {
-      const oldImagePath = path.join('uploads/perfil', usuario[0].foto_perfil);
-      try {
-        await fs.unlink(oldImagePath);
-      } catch (error) {
-        console.error('Error al eliminar imagen anterior:', error);
-      }
-    }
+    const oldImagePath = usuario[0].foto_perfil ? `uploads/perfil/${usuario[0].foto_perfil}` : null;
+    const filename = await processProfileImage(req.file, oldImagePath);
 
     await connection.query(
       'UPDATE usuarios SET foto_perfil = ? WHERE id_usuario = ?',
