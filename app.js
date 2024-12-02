@@ -14,6 +14,7 @@ const editorPublicacionesRoutes = require('./routes/editor.publicaciones.routes'
 const comentariosRoutes = require('./routes/comentarios.routes');
 const favoritosRoutes = require('./routes/favoritos.publicaciones.routes');
 const descargasRoutes = require('./routes/descargas.routes');
+const busquedaPublicacionesRoutes = require('./routes/busqueda.publicaciones.routes');
 
 const app = express();
 
@@ -56,6 +57,8 @@ app.use('/api/favoritos', favoritosRoutes);
 app.use('/api/editor/publicaciones', editorPublicacionesRoutes);
 app.use('/api/comentarios', comentariosRoutes);
 app.use('/api/descargas', descargasRoutes);
+app.use('/api/busqueda', busquedaPublicacionesRoutes);
+
 
 // Iniciar servidor
 const iniciarServidor = async () => {

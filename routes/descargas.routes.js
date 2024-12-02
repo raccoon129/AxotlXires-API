@@ -1,4 +1,3 @@
-
 //Invocar como
 // /api/descargas/idPublicacion?visualizar=true para visualizar en el navegador
 // /api/descargas/idPublicacion para descargar directamente
@@ -32,6 +31,12 @@ const CRIMSON_ITALIC = path.join(FONTS_DIR, 'CrimsonText-Italic.ttf');
         }
     });
 })();
+
+// Colores y estilos
+const PURPLE_COLOR = '#612c7d';
+const GRAY_COLOR = '#666666';
+const FOOTER_HEIGHT = 40;
+const LOGO_SIZE = { width: 120, height: 48 };
 
 // Función para procesar el contenido HTML de TipTap
 function procesarContenidoTipTap(contenido) {
@@ -147,137 +152,122 @@ function configurarDocumento(doc) {
     };
 }
 
-// Función para crear la portada
-async function crearPortada(doc, publicacion) {
-    try {
-        // Agregar imagen de portada
-        if (publicacion.imagen_portada) {
-            const rutaImagen = path.join(__dirname, '..', 'uploads', 'portadas', publicacion.imagen_portada);
-            if (fs.existsSync(rutaImagen)) {
-                // Ajustar la imagen para que abarque toda la página
-                doc.image(rutaImagen, 0, 0, {
-                    width: PAGE_WIDTH,
-                    height: PAGE_HEIGHT,
-                    align: 'center',
-                    valign: 'center'
-                });
+// Función para agregar elementos comunes en cada página
+function agregarElementosComunesPagina(doc) {
+    // Agregar logo en esquina superior derecha
+    const rutaLogo = path.join(__dirname, '..', 'assets', 'img', 'LogoHorizontalMargenes.png');
+    if (fs.existsSync(rutaLogo)) {
+        doc.image(rutaLogo, 
+            PAGE_WIDTH - MARGIN - LOGO_SIZE.width, 
+            MARGIN/2, 
+            { 
+                width: LOGO_SIZE.width,
+                height: LOGO_SIZE.height,
+                fit: [LOGO_SIZE.width, LOGO_SIZE.height],
+                align: 'right',
+                valign: 'top'
             }
-        }
-
-        // Agregar logo en la esquina inferior derecha
-        const rutaLogo = path.join(__dirname, '..', 'assets', 'img', 'LogoHorizontalMargenes.png');
-        if (fs.existsSync(rutaLogo)) {
-            // Dimensiones para el logo
-            const logoWidth = 250; // Ancho deseado del logo
-            const logoHeight = 100; // Alto deseado del logo
-            
-            // Posición del logo (esquina inferior derecha con margen)
-            const logoX = PAGE_WIDTH  - logoWidth - 30; // Posición X
-            const logoY = PAGE_HEIGHT - logoHeight; // Posición Y
-
-            // Agregar el logo con fondo blanco semitransparente para mejor visibilidad
-            doc.save()
-               .rect(logoX - 5, logoY - 5, logoWidth + 10, logoHeight + 10)
-               .fill('white', 0.7) // Color blanco con 70% de opacidad
-               .image(rutaLogo, logoX, logoY, {
-                   fit: [logoWidth, logoHeight],
-                   align: 'right',
-                   valign: 'bottom'
-               })
-               .restore();
-        } else {
-            console.warn('Logo no encontrado:', rutaLogo);
-        }
-        
-        doc.addPage();
-    } catch (error) {
-        console.error('Error al crear portada:', error);
-        throw error;
+        );
     }
+
+    // Agregar franja inferior
+    doc.save()
+       .rect(0, PAGE_HEIGHT - FOOTER_HEIGHT, PAGE_WIDTH, FOOTER_HEIGHT)
+       .fill(PURPLE_COLOR)
+       .restore();
 }
 
-// Función para agregar la página de información (segunda página)
-function agregarPaginaInformacion(doc, publicacion) {
-    // Centrar el contenido verticalmente
-    const yPos = (PAGE_HEIGHT - MARGIN * 2) / 2;
-    
-    // Agregar título centrado con fuente en negrita y tamaño grande
-    doc.font('Crimson-Bold')
-       .fontSize(24)
-       .text(publicacion.titulo, {
-           align: 'center',
-           continued: false
-       })
-       .moveDown(2);
+// Función para agregar la primera página con el nuevo diseño
+function agregarPrimeraPagina(doc, publicacion) {
+    agregarElementosComunesPagina(doc);
 
-    // Agregar metadatos de la publicación
-    doc.font('Crimson')
-       .fontSize(14)
-       .text(`Autor: ${publicacion.autor}`, {
-           align: 'center'
-       })
-       .moveDown()
-       .text(`Fecha de publicación: ${new Date(publicacion.fecha_publicacion).toLocaleDateString()}`, {
-           align: 'center'
-       })
-       .moveDown()
-       .text(`Tipo de publicación: ${publicacion.tipo_publicacion}`, {
-           align: 'center'
+    // Posición inicial del contenido
+    let yPos = MARGIN + LOGO_SIZE.height + 40;
+
+    // Título principal
+    doc.font('Crimson-Bold')
+       .fontSize(32)
+       .fillColor(PURPLE_COLOR)
+       .text(publicacion.titulo, MARGIN, yPos, {
+           align: 'left',
+           width: PAGE_WIDTH - (MARGIN * 2)
        });
 
-    doc.addPage();
-}
+    yPos += doc.heightOfString(publicacion.titulo) + 20;
 
-// Nueva función para agregar el resumen (tercera página)
-function agregarResumen(doc, resumen) {
-    // Título de la sección
+    // Autor y nombramiento
+    doc.font('Crimson')
+       .fontSize(18)
+       .fillColor(GRAY_COLOR)
+       .text(publicacion.autor, MARGIN, yPos, {
+           align: 'left'
+       });
+
+    yPos += 25;
+
+    doc.fontSize(14)
+       .text(publicacion.nombramiento || 'Investigador', MARGIN, yPos, {
+           align: 'left'
+       });
+
+    yPos += 40;
+
+    // Línea divisora
+    doc.strokeColor(PURPLE_COLOR)
+       .lineWidth(2)
+       .moveTo(MARGIN, yPos)
+       .lineTo(PAGE_WIDTH - MARGIN, yPos)
+       .stroke();
+
+    yPos += 30;
+
+    // Resumen
     doc.font('Crimson-Bold')
        .fontSize(16)
-       .text('Resumen', {
-           align: 'center'
-       })
-       .moveDown(2);
+       .fillColor('#000000')
+       .text('Resumen', MARGIN, yPos);
 
-    // Agregar el resumen con sangría y justificado
+    yPos += 20;
+
     doc.font('Crimson')
        .fontSize(12)
-       .text(resumen, {
+       .text(publicacion.resumen, MARGIN, yPos, {
            align: 'justify',
-           indent: 20,
-           width: PAGE_WIDTH - (MARGIN * 3)
-       })
-       .moveDown(2);
+           width: PAGE_WIDTH - (MARGIN * 2)
+       });
 
-    doc.addPage();
-}
+    yPos = doc.y + 30;
 
-// Función para agregar el contenido
-function agregarContenido(doc, contenido) {
-    const textoFormateado = procesarContenidoTipTap(contenido);
+    // Contenido principal
+    const textoFormateado = procesarContenidoTipTap(publicacion.contenido);
     
     doc.font('Crimson')
        .fontSize(12)
-       .text(textoFormateado, {
+       .text(textoFormateado, MARGIN, yPos, {
            align: 'justify',
+           width: PAGE_WIDTH - (MARGIN * 2),
            continued: true
        });
 }
 
-// Función para agregar referencias
+// Función para agregar referencias en nueva página
 function agregarReferencias(doc, referencias) {
-    doc.addPage()
-       .font('Crimson-Bold')
+    doc.addPage();
+    agregarElementosComunesPagina(doc);
+
+    doc.font('Crimson-Bold')
        .fontSize(16)
-       .text('Referencias', {
-           align: 'center',
-           continued: false
+       .fillColor('#000000')
+       .text('Referencias', MARGIN, MARGIN + LOGO_SIZE.height + 20, {
+           align: 'left'
        })
        .moveDown();
 
     doc.font('Crimson')
        .fontSize(12)
        .text(referencias, {
-           align: 'left'
+           align: 'left',
+           width: PAGE_WIDTH - (MARGIN * 2)
        });
 }
 
@@ -322,40 +312,35 @@ router.get('/:id', async (req, res) => {
         // Crear documento PDF
         const doc = new PDFDocument({
             size: 'letter',
-            bufferPages: true
+            bufferPages: true,
+            autoFirstPage: true,
+            margin: MARGIN
+        });
+
+        // Configurar evento para elementos comunes en nuevas páginas
+        doc.on('pageAdded', () => {
+            agregarElementosComunesPagina(doc);
         });
 
         // Configurar headers para la respuesta
         res.setHeader('Content-Type', 'application/pdf');
         if (!visualizar) {
-            // Si es descarga, usar el título como nombre del archivo
             res.setHeader('Content-Disposition', `attachment; filename=${nombreArchivo}.pdf`);
         }
 
-        // Pipe el PDF directamente a la respuesta
         doc.pipe(res);
 
-        // Configurar documento con fuentes y márgenes
+        // Configurar documento
         configurarDocumento(doc);
 
-        // 1. Primera página: Portada con imagen
-        await crearPortada(doc, publicacion);
+        // Agregar contenido con nuevo diseño
+        agregarPrimeraPagina(doc, publicacion);
 
-        // 2. Segunda página: Información básica centrada
-        agregarPaginaInformacion(doc, publicacion);
-
-        // 3. Tercera página: Resumen
-        agregarResumen(doc, publicacion.resumen);
-
-        // 4. Páginas siguientes: Contenido principal
-        agregarContenido(doc, publicacion.contenido);
-
-        // 5. Última página: Referencias bibliográficas
+        // Agregar referencias en nueva página
         if (publicacion.referencias) {
             agregarReferencias(doc, publicacion.referencias);
         }
 
-        // Finalizar y enviar el documento
         doc.end();
 
     } catch (error) {
