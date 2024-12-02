@@ -86,4 +86,61 @@ router.post('/', verificarToken, async (req, res) => {
     }
 });
 
+/**
+ * Obtener top 5 publicaciones más favoritas
+ * GET /api/favoritos/top
+ */
+router.get('/top', async (req, res) => {
+    try {
+        const [publicaciones] = await pool.query(
+            `SELECT 
+                p.id_publicacion,
+                p.titulo,
+                p.resumen,
+                p.imagen_portada,
+                p.fecha_publicacion,
+                u.nombre as autor,
+                COALESCE(u.foto_perfil, 'thumb_who.jpg') as autor_foto,
+                tp.nombre as categoria,
+                COUNT(f.id_publicacion) as total_favoritos
+            FROM publicaciones p
+            JOIN usuarios u ON p.id_usuario = u.id_usuario
+            JOIN tipos_publicacion tp ON p.id_tipo = tp.id_tipo
+            LEFT JOIN favoritos f ON p.id_publicacion = f.id_publicacion
+            WHERE p.estado = 'publicado'
+            AND p.eliminado = 0
+            AND p.es_privada = 0  /* Asegura que solo se muestren publicaciones públicas */
+            GROUP BY 
+                p.id_publicacion,
+                p.titulo,
+                p.resumen,
+                p.imagen_portada,
+                p.fecha_publicacion,
+                u.nombre,
+                u.foto_perfil,
+                tp.nombre
+            ORDER BY total_favoritos DESC, p.fecha_publicacion DESC
+            LIMIT 5`
+        );
+
+        console.log('Publicaciones favoritas públicas encontradas:', publicaciones.length);
+
+        return res.json({
+            status: 'success',
+            mensaje: publicaciones.length > 0 
+                ? 'Top 5 publicaciones públicas más favoritas obtenidas exitosamente'
+                : 'No hay publicaciones públicas favoritas disponibles',
+            datos: publicaciones
+        });
+
+    } catch (error) {
+        console.error('Error al obtener top publicaciones:', error);
+        res.status(500).json({
+            status: 'error',
+            mensaje: 'Error al obtener las publicaciones más favoritas',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
 module.exports = router;
