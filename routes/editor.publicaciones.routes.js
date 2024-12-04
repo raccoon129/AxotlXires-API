@@ -49,14 +49,18 @@ router.get('/:id', verificarToken, async (req, res) => {
 // Función auxiliar para procesar la imagen de portada
 async function procesarImagenPortada(file) {
     try {
+        if (!file || !file.buffer) {
+            throw new Error('No se proporcionó un archivo válido');
+        }
+
         // Generar nombre único para el archivo
         const nombreArchivo = 'portada_' + Date.now() + path.extname(file.originalname);
         
         // Construir ruta completa para guardar el archivo
         const rutaCompleta = path.join('uploads', 'portadas', nombreArchivo);
 
-        // Mover el archivo
-        await fs.rename(file.path, rutaCompleta);
+        // Escribir el buffer del archivo directamente
+        await fs.writeFile(rutaCompleta, file.buffer);
 
         // Devolver solo el nombre del archivo para guardar en la base de datos
         return nombreArchivo;
@@ -72,6 +76,7 @@ async function eliminarImagenPortadaAnterior(nombreArchivo) {
     
     try {
         const rutaCompleta = path.join('uploads', 'portadas', nombreArchivo);
+        await fs.access(rutaCompleta); // Verificar si el archivo existe
         await fs.unlink(rutaCompleta);
     } catch (error) {
         console.error('Error al eliminar imagen anterior:', error);
