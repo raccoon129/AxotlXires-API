@@ -15,6 +15,7 @@ const comentariosRoutes = require('./routes/comentarios.routes');
 const favoritosRoutes = require('./routes/favoritos.publicaciones.routes');
 const descargasRoutes = require('./routes/descargas.routes');
 const busquedaPublicacionesRoutes = require('./routes/busqueda.publicaciones.routes');
+const registroRoutes = require('./routes/registro.routes');
 
 const app = express();
 
@@ -51,7 +52,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Rutas
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', [authRoutes]);
+app.use('/api/auth/registro', registroRoutes); // Agregar rutas de registro bajo auth
 app.use('/api/publicaciones', publicacionesRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/ping', pingRoutes);
@@ -60,7 +62,6 @@ app.use('/api/editor/publicaciones', editorPublicacionesRoutes);
 app.use('/api/comentarios', comentariosRoutes);
 app.use('/api/descargas', descargasRoutes);
 app.use('/api/busqueda', busquedaPublicacionesRoutes);
-
 
 // Iniciar servidor
 const iniciarServidor = async () => {
