@@ -16,6 +16,9 @@ const favoritosRoutes = require('./routes/favoritos.publicaciones.routes');
 const descargasRoutes = require('./routes/descargas.routes');
 const busquedaPublicacionesRoutes = require('./routes/busqueda.publicaciones.routes');
 const registroRoutes = require('./routes/registro.routes');
+const authManagementRoutes = require('./routes/management/auth.management.routes');
+const usuariosManagementRoutes = require('./routes/management/usuarios.management.routes');
+const publicacionesManagementRoutes = require('./routes/management/publicaciones.management.routes');
 
 const app = express();
 
@@ -39,7 +42,7 @@ app.use(helmet({
 }));
   
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: [process.env.FRONTEND_URL || 'http://localhost:3000', process.env.MANAGEMENT_URL || 'http://localhost:3002'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -52,8 +55,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Rutas
-app.use('/api/auth', [authRoutes]);
-app.use('/api/auth/registro', registroRoutes); // Agregar rutas de registro bajo auth
+app.use('/api/auth', authRoutes);
+app.use('/api/auth/registro', registroRoutes);
 app.use('/api/publicaciones', publicacionesRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/ping', pingRoutes);
@@ -62,6 +65,9 @@ app.use('/api/editor/publicaciones', editorPublicacionesRoutes);
 app.use('/api/comentarios', comentariosRoutes);
 app.use('/api/descargas', descargasRoutes);
 app.use('/api/busqueda', busquedaPublicacionesRoutes);
+app.use('/api/management/auth', authManagementRoutes);
+app.use('/api/management/usuarios', usuariosManagementRoutes);
+app.use('/api/management/publicaciones', publicacionesManagementRoutes);
 
 // Iniciar servidor
 const iniciarServidor = async () => {

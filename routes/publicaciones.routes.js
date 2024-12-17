@@ -3,6 +3,12 @@ const router = express.Router();
 const { verificarToken } = require('../middleware/auth');
 const upload = require('../middleware/multer');
 const { pool } = require('../config/database');
+const sharp = require('sharp');
+const path = require('path');
+const fs = require('fs').promises;
+const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcrypt');
+const authenticateToken = require('../middleware/autenticateToken');
 
 // Obtener todas las publicaciones
 router.get('/', async (req, res) => {
@@ -328,6 +334,53 @@ router.get('/:idPublicacion/usuarioPertenece', async (req, res) => {
           mensaje: 'Error al obtener el usuario de la publicación',
           error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
+  }
+});
+
+
+// Nueva ruta: Obtener una publicación en revisión, borrador o rechazada del usuario
+router.get('/usuario/:id_usuario/revision/:id_publicacion', authenticateToken, async (req, res) => {
+  try {
+    const { id_usuario, id_publicacion } = req.params;
+
+    // Verificar que el usuario autenticado es el mismo que el id_usuario
+    if (req.usuario.id !== parseInt(id_usuario)) {
+      return res.status(403).json({
+        status: 'error',
+        mensaje: 'No tienes permiso para acceder a esta publicación'
+      });
+    }
+
+    // Consultar la publicación con los estados permitidos
+    const [publicaciones] = await pool.query(
+      `SELECT * FROM publicaciones 
+       WHERE id_publicacion = ? 
+       AND id_usuario = ? 
+       AND estado IN ('en_revision', 'borrador', 'rechazado') 
+       AND eliminado = 0`,
+      [id_publicacion, id_usuario]
+    );
+
+    if (publicaciones.length === 0) {
+      return res.status(404).json({
+        status: 'error',
+        mensaje: 'Publicación no encontrada o no está en un estado válido para visualizar'
+      });
+    }
+
+    res.json({
+      status: 'success',
+      mensaje: 'Publicación recuperada exitosamente',
+      datos: publicaciones[0]
+    });
+
+  } catch (error) {
+    console.error('Error al obtener la publicación:', error);
+    res.status(500).json({
+      status: 'error',
+      mensaje: 'Error al obtener la publicación',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
