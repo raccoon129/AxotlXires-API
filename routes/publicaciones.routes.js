@@ -384,3 +384,58 @@ router.get('/usuario/:id_usuario/revision/:id_publicacion', authenticateToken, a
   }
 });
 
+// Eliminar publicación (soft delete pendiente de confirmación)
+router.delete('/:id', authenticateToken, async (req, res) => {
+  const connection = await pool.getConnection();
+  
+  try {
+      const { id: publicacionId } = req.params;
+      const userId = req.usuario.id;
+
+      // Verificar existencia y propiedad de la publicación
+      const [publicacion] = await connection.query(
+          'SELECT id_usuario FROM publicaciones WHERE id_publicacion = ? AND eliminado = 0',
+          [publicacionId]
+      );
+
+      if (publicacion.length === 0) {
+          return res.status(404).json({
+              status: 'error',
+              mensaje: 'Publicación no encontrada'
+          });
+      }
+
+      if (publicacion[0].id_usuario !== userId) {
+          return res.status(403).json({
+              status: 'error',
+              mensaje: 'No tienes permiso para eliminar esta publicación'
+          });
+      }
+
+      await connection.beginTransaction();
+
+      // Marcar como eliminada (pendiente de confirmación)
+      await connection.query(
+          'UPDATE publicaciones SET eliminado = 1 WHERE id_publicacion = ?',
+          [publicacionId]
+      );
+
+      await connection.commit();
+
+      res.json({
+          status: 'success',
+          mensaje: 'Publicación marcada para eliminación exitosamente'
+      });
+
+  } catch (error) {
+      await connection.rollback();
+      console.error('Error al marcar publicación para eliminar:', error);
+      res.status(500).json({
+          status: 'error',
+          mensaje: 'Error al marcar la publicación para eliminación',
+          error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+  } finally {
+      connection.release();
+  }
+});
