@@ -19,6 +19,8 @@ const registroRoutes = require('./routes/registro.routes');
 const authManagementRoutes = require('./routes/management/auth.management.routes');
 const usuariosManagementRoutes = require('./routes/management/usuarios.management.routes');
 const publicacionesManagementRoutes = require('./routes/management/publicaciones.management.routes');
+const analyticsManagementRoutes = require('./routes/management/analytics.management.routes');
+const detallesUsuarioRoutes = require('./routes/detalles.usuario.routes'); // Nueva importación
 
 const app = express();
 
@@ -59,6 +61,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/auth/registro', registroRoutes);
 app.use('/api/publicaciones', publicacionesRoutes);
 app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/usuarios/detalles', detallesUsuarioRoutes); // Nueva ruta
 app.use('/api/ping', pingRoutes);
 app.use('/api/favoritos', favoritosRoutes);
 app.use('/api/editor/publicaciones', editorPublicacionesRoutes);
@@ -68,6 +71,7 @@ app.use('/api/busqueda', busquedaPublicacionesRoutes);
 app.use('/api/management/auth', authManagementRoutes);
 app.use('/api/management/usuarios', usuariosManagementRoutes);
 app.use('/api/management/publicaciones', publicacionesManagementRoutes);
+app.use('/api/management/analytics', analyticsManagementRoutes);
 
 // Iniciar servidor
 const iniciarServidor = async () => {

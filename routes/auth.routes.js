@@ -103,4 +103,46 @@ router.post('/login', async (req, res) => {
     }
 });
 
+router.post('/registro', async (req, res) => {
+    const connection = await pool.getConnection();
+    
+    try {
+      const { nombre, correo, contrasena } = req.body;
+  
+      // Verificar si el correo ya existe
+      const [existingUser] = await connection.query(
+        'SELECT id_usuario FROM usuarios WHERE correo = ?',
+        [correo]
+      );
+  
+      if (existingUser.length > 0) {
+        return res.status(400).json({
+          status: 'error',
+          mensaje: 'El correo electrónico ya está registrado'
+        });
+      }
+  
+      const hashedPassword = await bcrypt.hash(contrasena, 10);
+      
+      await connection.query(
+        'INSERT INTO usuarios (nombre, correo, contrasena_hash, rol) VALUES (?, ?, ?, ?)',
+        [nombre, correo, hashedPassword, 'usuario']
+      );
+  
+      res.status(201).json({
+        status: 'success',
+        mensaje: 'Usuario registrado exitosamente'
+      });
+  
+    } catch (error) {
+      console.error('Error en registro:', error);
+      res.status(500).json({
+        status: 'error',
+        mensaje: 'Error al registrar usuario'
+      });
+    } finally {
+      connection.release();
+    }
+  });
+
 module.exports = router;

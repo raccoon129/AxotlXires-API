@@ -271,6 +271,61 @@ function agregarReferencias(doc, referencias) {
        });
 }
 
+// Función para agregar la página final
+function agregarPaginaFinal(doc, publicacion) {
+    doc.addPage();
+    agregarElementosComunesPagina(doc);
+
+    // Posición inicial
+    let yPos = PAGE_HEIGHT / 2;
+
+    // Agregar imagen del ajolote
+    const rutaIcono = path.join(__dirname, '..', 'assets', 'img', 'IconCabezaAjoloteDark.png');
+    if (fs.existsSync(rutaIcono)) {
+        const ICON_SIZE = 180; // Tamaño de la imagen en puntos
+        doc.image(rutaIcono, 
+            (PAGE_WIDTH - ICON_SIZE) / 2,
+            yPos - ICON_SIZE,
+            { 
+                width: ICON_SIZE,
+                height: ICON_SIZE
+            }
+        );
+    }
+
+    yPos += 10;
+
+    // Texto de la plataforma
+    doc.font('Crimson')
+       .fontSize(14)
+       .text('Publicado en Axotl Xires\nPlataforma para la divulgación de artículos científicos y académicos.',
+            MARGIN,
+            yPos,
+            {
+                align: 'center',
+                width: PAGE_WIDTH - (MARGIN * 2)
+            });
+
+    yPos += 200;
+
+    // Generar cita APA
+    const fechaPublicacion = new Date(publicacion.fecha_publicacion);
+    const citaAPA = `${publicacion.autor}. (${fechaPublicacion.getFullYear()}). ${publicacion.titulo}. Axotl Xires. https://www.axotl.org/publicaciones/${publicacion.id_publicacion}`;
+
+    doc.font('Crimson-Italic')
+       .fontSize(12)
+       .text('Cita sugerida (formato APA):', MARGIN, yPos, {
+           align: 'left',
+           width: PAGE_WIDTH - (MARGIN * 2)
+       })
+       .moveDown(0.5)
+       .font('Crimson')
+       .text(citaAPA, {
+           align: 'left',
+           width: PAGE_WIDTH - (MARGIN * 2)
+       });
+}
+
 // Ruta para generar y descargar/visualizar PDF
 router.get('/:id', async (req, res) => {
     try {
@@ -340,6 +395,9 @@ router.get('/:id', async (req, res) => {
         if (publicacion.referencias) {
             agregarReferencias(doc, publicacion.referencias);
         }
+
+        // Agregar página final
+        agregarPaginaFinal(doc, publicacion);
 
         doc.end();
 

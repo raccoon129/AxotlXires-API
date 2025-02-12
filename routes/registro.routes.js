@@ -74,7 +74,8 @@ router.post('/paso1', async (req, res) => {
         if (existingUser.length > 0) {
             return res.status(409).json({
                 status: 'error',
-                mensaje: 'El correo ya está registrado'
+                mensaje: 'El correo electrónico ya está registrado',
+                codigo: 'EMAIL_DUPLICATE'
             });
         }
 
@@ -122,6 +123,7 @@ router.post('/paso1', async (req, res) => {
 
     } catch (error) {
         await connection.rollback();
+        console.error('Error en registro paso 1:', error);
         res.status(500).json({
             status: 'error',
             mensaje: 'Error en el registro inicial',
