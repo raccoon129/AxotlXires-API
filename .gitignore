@@ -3,11 +3,13 @@
 /uploads/portadas/*
 /uploads/perfil/*
 /uploads/temp/*
+/uploads/publicaciones/*
 
 # Mantener los directorios vacíos con .gitkeep
 !/uploads/portadas/.gitkeep
 !/uploads/perfil/.gitkeep
 !/uploads/temp/.gitkeep
+!/uploads/publicaciones/.gitkeep
 
 # Dependencies
 /node_modules
