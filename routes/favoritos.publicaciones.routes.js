@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { verificarToken } = require('../middleware/auth');
 const { pool } = require('../config/database');
+const NotificacionesService = require('../utils/notificaciones.util');
 
 /**
  * Obtener el número de favoritos de una publicación
@@ -71,6 +72,12 @@ router.post('/', verificarToken, async (req, res) => {
             const [resultado] = await pool.query(
                 'INSERT INTO favoritos (id_usuario, id_publicacion) VALUES (?, ?)',
                 [id_usuario, id_publicacion]
+            );
+
+            // Generar notificación solo cuando se añade como favorito
+            await NotificacionesService.notificarNuevoFavorito(
+                id_publicacion, 
+                id_usuario
             );
 
             res.status(201).json({

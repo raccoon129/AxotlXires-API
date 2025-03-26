@@ -22,6 +22,7 @@ const publicacionesManagementRoutes = require('./routes/management/publicaciones
 const analyticsManagementRoutes = require('./routes/management/analytics.management.routes');
 const detallesUsuarioRoutes = require('./routes/detalles.usuario.routes'); // Nueva importación
 const imagenesEditorPublicacionesRoutes = require('./routes/imagenes.editor.publicaciones.routes');
+const notificacionesRoutes = require('./routes/notificaciones.routes');
 
 const app = express();
 
@@ -74,6 +75,7 @@ app.use('/api/management/usuarios', usuariosManagementRoutes);
 app.use('/api/management/publicaciones', publicacionesManagementRoutes);
 app.use('/api/management/analytics', analyticsManagementRoutes);
 app.use('/api/editor/publicaciones/imagenes', imagenesEditorPublicacionesRoutes);
+app.use('/api/notificaciones', notificacionesRoutes); // Nueva ruta
 
 // Agregar nueva ruta estática para las imágenes de publicaciones
 app.use('/uploads/publicaciones', express.static(path.join(__dirname, 'uploads', 'publicaciones')));

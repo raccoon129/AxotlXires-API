@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { verificarToken } = require('../middleware/auth');
 const { pool } = require('../config/database');
+const NotificacionesService = require('../utils/notificaciones.util');
 
 /**
  * Obtener todos los comentarios de una publicación
@@ -45,6 +46,13 @@ router.post('/', verificarToken, async (req, res) => {
         const [resultado] = await pool.query(
             'INSERT INTO comentarios (id_usuario, id_publicacion, contenido) VALUES (?, ?, ?)',
             [id_usuario, id_publicacion, contenido]
+        );
+
+        // Generar notificación
+        await NotificacionesService.notificarNuevoComentario(
+            id_publicacion, 
+            resultado.insertId, 
+            id_usuario
         );
 
         res.status(201).json({
