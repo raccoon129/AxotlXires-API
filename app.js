@@ -46,7 +46,7 @@ app.use(helmet({
 }));
   
 app.use(cors({
-    origin: [process.env.FRONTEND_URL || 'http://localhost:3000', process.env.MANAGEMENT_URL || 'http://localhost:3003'],
+    origin: [process.env.FRONTEND_URL || 'http://localhost:3000', process.env.MANAGEMENT_URL || 'http://localhost:3003', 'http://localhost:3002'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
